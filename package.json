@@ -1,0 +1,15 @@
+{
+  "name": "it-gps-app",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm --prefix server run dev\" \"npm --prefix frontend run dev\"",
+    "start": "npm --prefix server run start",
+    "install:all": "npm --prefix server install && npm --prefix frontend install",
+    "db:init": "npm --prefix server run db:init",
+    "build": "npm --prefix frontend run build",
+    "qa:financiero": "npm --prefix server run qa:financiero"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

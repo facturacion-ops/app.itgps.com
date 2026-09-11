@@ -1,0 +1,17 @@
+node_modules/
+frontend/node_modules/
+server/node_modules/
+server/data/
+*.db
+*.db-wal
+*.db-shm
+.env
+.env.*
+!.env.example
+
+server/data/*.db
+server/data/*.db-shm
+server/data/*.db-wal
+
+frontend/dist/
+*.tmp
