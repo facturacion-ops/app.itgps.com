@@ -46,7 +46,7 @@ function translateSql(input){
     // For normal inserts this is harmless and matches SQLite's OR IGNORE behavior used by the app.
     if(/INSERT\s+OR\s+IGNORE/i.test(input)) sql += ' ON CONFLICT DO NOTHING';
   }
-   const placeholders=replacePlaceholders(sql);
+  const placeholders=replacePlaceholders(sql);
   sql=placeholders.sql;
   const paramNames=placeholders.names;
 
@@ -102,8 +102,7 @@ function prepare(sql){
     all(...args){ return callWorker(pgSql,paramsFromArgs(args,names)).rows; },
     iterate(...args){ return callWorker(pgSql,paramsFromArgs(args,names)).rows.values(); },
     run(...args){
-      const result=callWorker(pgSql,paramsFromArgs(args,names));{
-      const result=callWorker(pgSql,paramsFromArgs(args));
+      const result=callWorker(pgSql,paramsFromArgs(args,names));
       let lastInsertRowid=0;
       if(String(result.command).toUpperCase()==='INSERT'){
         const m=/^INSERT\s+INTO\s+(["A-Za-z_][\w".]*)/i.exec(pgSql);
@@ -126,10 +125,9 @@ function prepare(sql){
 
 const pgDb={
   prepare,
-    exec(sql){
+  exec(sql){
     const statements=String(sql).split(/;\s*(?=(?:[^']*'[^']*')*[^']*$)/).map(x=>x.trim()).filter(Boolean);
     for(const s of statements) callWorker(translateSql(s).sql,[]);
-  },
   },
   pragma(){ return 1; },
   transaction(fn){
