@@ -144,7 +144,6 @@ export async function initPostgresMirror(){
   const exists=callWorker("SELECT to_regclass('public.empresas') AS table_name",[]).rows[0]?.table_name;
   if(!exists){
     let schema=fs.readFileSync(schemaPath,'utf8');
-    schema=schema.replace(/CREATE TABLE\s+/gi,'CREATE TABLE IF NOT EXISTS ').replace(/CREATE UNIQUE INDEX\s+/gi,'CREATE UNIQUE INDEX IF NOT EXISTS ').replace(/CREATE INDEX\s+/gi,'CREATE INDEX IF NOT EXISTS ');
     pgDb.exec(schema);
   }
   initialized=true;
