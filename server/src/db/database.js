@@ -46,7 +46,9 @@ function translateSql(input){
     // For normal inserts this is harmless and matches SQLite's OR IGNORE behavior used by the app.
     if(/INSERT\s+OR\s+IGNORE/i.test(input)) sql += ' ON CONFLICT DO NOTHING';
   }
-  sql=replacePlaceholders(sql);
+   const placeholders=replacePlaceholders(sql);
+  sql=placeholders.sql;
+  const paramNames=placeholders.names;
 
   // SQLite date/time compatibility used by the existing routes.
   sql=sql.replace(/strftime\(\s*'%Y-%m'\s*,\s*'now'\s*\)/gi,"TO_CHAR(CURRENT_DATE,'YYYY-MM')");
@@ -60,7 +62,7 @@ function translateSql(input){
   sql=sql.replace(/date\(\s*(\$\d+)\s*\)/gi,'($1::date)');
   sql=sql.replace(/date\(\s*([A-Za-z_][\w.]*)\s*\)/gi,"(NULLIF($1,'')::date)");
   sql=sql.replace(/date_trunc\(\s*'month'\s*,\s*CURRENT_DATE\s*\)/gi,"date_trunc('month',CURRENT_DATE)");
-  return sql;
+  return {sql, names:paramNames};
 }
 
 function ensureWorker(){
@@ -84,18 +86,23 @@ function callWorker(sql, params=[]){
   return result;
 }
 
-function paramsFromArgs(args){
+function paramsFromArgs(args, names){
+  if(names && names.some(n=>n)){
+    const obj=(args.length===1 && typeof args[0]==='object' && args[0]!==null && !Array.isArray(args[0])) ? args[0] : {};
+    return names.map(n => n ? obj[n] : undefined);
+  }
   if(args.length===1 && Array.isArray(args[0])) return args[0];
   return args;
 }
 
 function prepare(sql){
-  const pgSql=translateSql(sql);
+  const {sql:pgSql, names}=translateSql(sql);
   return {
-    get(...args){ return callWorker(pgSql,paramsFromArgs(args)).rows[0]; },
-    all(...args){ return callWorker(pgSql,paramsFromArgs(args)).rows; },
-    iterate(...args){ return callWorker(pgSql,paramsFromArgs(args)).rows.values(); },
+    get(...args){ return callWorker(pgSql,paramsFromArgs(args,names)).rows[0]; },
+    all(...args){ return callWorker(pgSql,paramsFromArgs(args,names)).rows; },
+    iterate(...args){ return callWorker(pgSql,paramsFromArgs(args,names)).rows.values(); },
     run(...args){
+      const result=callWorker(pgSql,paramsFromArgs(args,names));{
       const result=callWorker(pgSql,paramsFromArgs(args));
       let lastInsertRowid=0;
       if(String(result.command).toUpperCase()==='INSERT'){
@@ -119,9 +126,10 @@ function prepare(sql){
 
 const pgDb={
   prepare,
-  exec(sql){
+    exec(sql){
     const statements=String(sql).split(/;\s*(?=(?:[^']*'[^']*')*[^']*$)/).map(x=>x.trim()).filter(Boolean);
-    for(const s of statements) callWorker(translateSql(s),[]);
+    for(const s of statements) callWorker(translateSql(s).sql,[]);
+  },
   },
   pragma(){ return 1; },
   transaction(fn){
