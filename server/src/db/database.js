@@ -16,7 +16,7 @@ let inTransaction = false;
 function quoteIdent(v){ return `"${String(v).replaceAll('"','""')}"`; }
 
 function replacePlaceholders(sql){
-  let out=''; let n=0; let quote=null;
+  let out=''; let n=0; let quote=null; const names=[];
   for(let i=0;i<sql.length;i++){
     const ch=sql[i];
     if(quote){
@@ -27,10 +27,15 @@ function replacePlaceholders(sql){
       continue;
     }
     if(ch==='\'' || ch==='"' || ch==='`'){ quote=ch; out+=ch; continue; }
-    if(ch==='?'){ out+=`$${++n}`; continue; }
+    if(ch==='?'){ out+=`$${++n}`; names.push(null); continue; }
+    if(ch==='@'){
+      let j=i+1; let name='';
+      while(j<sql.length && /[A-Za-z0-9_]/.test(sql[j])){ name+=sql[j]; j++; }
+      if(name){ out+=`$${++n}`; names.push(name); i=j-1; continue; }
+    }
     out+=ch;
   }
-  return out;
+  return {sql:out, names};
 }
 
 function translateSql(input){
